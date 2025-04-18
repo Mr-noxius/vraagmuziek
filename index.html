@@ -2,72 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Spotify Song Suggestion</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-  </style>
 </head>
-<body class="bg-gradient-to-br from-green-100 to-blue-100 min-h-screen px-6 py-10 flex justify-center">
-  <div class="w-full max-w-xl">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">🎵 Suggest a Song</h1>
-
-    <div id="search-section">
-      <div class="flex gap-2 mb-6">
-        <input type="text" id="query" placeholder="Search for a song..." class="flex-grow px-4 py-2 rounded shadow" />
-      </div>
-      <div id="results" class="grid gap-4"></div>
-    </div>
+<body class="bg-gray-100 min-h-screen p-10">
+  <div class="max-w-xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-center">Suggest a Song</h1>
+    <input id="query" type="text" placeholder="Type a song..." class="w-full px-4 py-2 mb-4 rounded shadow" />
+    <div id="results" class="space-y-4"></div>
   </div>
 
   <script>
     const SPOTIFY_SEARCH_ENDPOINT = "https://api.spotify.com/v1/search";
-    const CLIENT_ID = "db3a8275788c4096a98026b3e850d48c";
-    const CLIENT_SECRET = "ba0a30193e954c24985eb62c73cf3da2";
-    const REFRESH_TOKEN = "AQDrLdCitHev6KlQxtKAL2fxhZjsh7a28smFlV2ug1lnNrudi0pxN8Kot0jKRyd03jGdE6ZMgJe__pty56K-JZrqk6_RDPQj54Pu0FPoIKfpYpz5Y52MeudCGlkBs8aWOWs"; // <--- Paste your refresh token here
+    const CLIENT_ID = "your-client-id-here";
+    const CLIENT_SECRET = "your-client-secret-here";
+    const REFRESH_TOKEN = "your-refresh-token-here";
+    const PLAYLIST_ID = "your-playlist-id-here";
 
-    const GENRE_PLAYLISTS = {
-      house: "3Tp4WIDH07Fq4nZp9kQvax",
-      hardstyle: "43TVcmuse42iHZBMvtXsZ2",
-      meezingers: "0OoWV7pIZjn8l1UHzWoZeV",
-      pop: "52Hi2nLWeRzjicQjMi3r8z"
-    };
+    let accessToken = null;
 
-    let MEEZINGERS_WHITELIST = [];
-
-    async function loadMeezingersWhitelist() {
-  MEEZINGERS_WHITELIST = [
-    "bohemian rhapsody", "sweet caroline", "piano man", "dancing queen", "wonderwall", "don't stop believin'",
-    "livin' on a prayer", "i want it that way", "hey jude", "mr. brightside", "let it be", "africa",
-    "take me home, country roads", "i will survive", "total eclipse of the heart", "wake me up before you go-go",
-    "i wanna dance with somebody", "billie jean", "ain’t no mountain high enough", "man! i feel like a woman!",
-    "angels", "summer of '69", "eye of the tiger", "you're the one that i want", "we are the champions",
-    "sex on fire", "rolling in the deep", "hallelujah", "chasing cars", "let it go", "shape of you", "shallow",
-    "counting stars", "old town road", "dance monkey", "as it was", "levitating", "happy", "blinding lights",
-    "drivers license", "stay", "bad habits", "flowers", "abcdefu", "roxanne", "highway to hell", "we will rock you",
-    "twist and shout", "sweet child o' mine", "crazy in love", "uptown funk", "shake it off", "someone like you",
-    "thinking out loud", "perfect", "all of me", "just the way you are", "grenade", "locked out of heaven",
-    "a thousand miles", "complicated", "sk8er boi", "toxic", "oops!... i did it again", "baby one more time",
-    "wannabe", "viva la vida", "fix you", "adventure of a lifetime", "yellow", "clocks", "in the end", "numb",
-    "boulevard of broken dreams", "american idiot", "i gotta feeling", "let's get it started", "sorry",
-    "love yourself", "peaches", "ghost", "watermelon sugar", "sign of the times", "drag me down", "story of my life",
-    "what makes you beautiful", "all star", "i’m yours", "rude", "let her go", "pompeii", "believer", "thunder",
-    "demons", "radioactive", "happier", "bad guy", "therefore i am", "everything i wanted", "ocean eyes",
-    "bury a friend", "smells like teen spirit", "come as you are", "in bloom", "lithium", "enter sandman",
-    "nothing else matters", "killing in the name", "tnt", "back in black",
-    "zij gelooft in mij", "bloed zweet en tranen", "leef", "het regent zonnestralen", "als het avond is",
-    "zoutelande", "iedereen is van de wereld", "heb je even voor mij", "waarom fluister ik je naam nog",
-    "ik leef niet meer voor jou", "laat me", "vlieg met me mee", "het is een nacht", "pa", "mag ik dan bij jou",
-    "kon ik maar even bij je zijn", "dromen zijn bedrog", "zij maakt het verschil", "ik kan het niet alleen",
-    "avond", "roller coaster", "brabant", "het dorp", "een man mag niet huilen", "smoorverliefd", "satisfyer",
-    "anne", "rosanne", "zeg maar niets meer", "zonder jou", "samen zijn", "twee leugens", "1000 lieve woorden",
-    "als je wint"
-  ];
-}
-
-
-    async function getAppToken() {
+    async function getAccessToken() {
       const res = await fetch("https://accounts.spotify.com/api/token", {
         method: "POST",
         headers: {
@@ -83,17 +38,12 @@
       return data.access_token;
     }
 
-    let accessToken = null;
-
     async function init() {
-      accessToken = await getAppToken();
-      await loadMeezingersWhitelist();
+      accessToken = await getAccessToken();
     }
 
     async function searchSpotify(query) {
       if (!accessToken) await init();
-      if (!query) return;
-
       const res = await fetch(`${SPOTIFY_SEARCH_ENDPOINT}?q=${encodeURIComponent(query)}&type=track&limit=5`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -103,71 +53,26 @@
       const data = await res.json();
       const resultsEl = document.getElementById("results");
       resultsEl.innerHTML = "";
+
       if (!data.tracks || !data.tracks.items) return;
 
       data.tracks.items.forEach(track => {
         const trackHtml = `
-          <div class="bg-white shadow-md rounded-xl p-4 flex items-center justify-between hover:shadow-lg transition">
-            <div class="flex items-center gap-4">
-              <img src="${track.album.images[2]?.url || track.album.images[0]?.url}" alt="${track.name}" class="w-12 h-12 rounded shadow" />
-              <div>
-                <p class="font-semibold text-lg">${track.name}</p>
-                <p class="text-sm text-gray-500">${track.artists.map(a => a.name).join(", ")}</p>
-              </div>
+          <div class="bg-white shadow rounded p-4 flex justify-between items-center">
+            <div>
+              <div class="font-bold">${track.name}</div>
+              <div class="text-sm text-gray-600">${track.artists.map(a => a.name).join(", ")}</div>
             </div>
-            <button onclick="addToGenrePlaylist('${track.id}', '${track.uri}', '${track.artists.map(a => a.name.toLowerCase()).join(', ')}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">➕</button>
+            <button onclick="addToPlaylist('${track.uri}')" class="bg-green-500 text-white px-3 py-1 rounded">Add</button>
           </div>`;
         resultsEl.insertAdjacentHTML("beforeend", trackHtml);
       });
     }
 
-    async function getGenreForTrack(trackId, artistNames) {
-      const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      const track = await res.json();
-      const artistId = track.artists[0]?.id;
-
-      const artistRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      const artistData = await artistRes.json();
-      const genres = artistData.genres.map(g => g.toLowerCase());
-
-      const allArtistNames = artistNames.split(',');
-      const isMeezinger = allArtistNames.some(name => MEEZINGERS_WHITELIST.includes(name.trim()));
-
-      if (isMeezinger) return "meezingers";
-
-      const genreMap = Object.keys(GENRE_PLAYLISTS);
-      const matches = genreMap.map(genre => {
-        return {
-          genre,
-          score: genres.filter(g => g.includes(genre)).length
-        };
-      }).filter(g => g.score > 0);
-
-      if (matches.length === 0) return null;
-
-      matches.sort((a, b) => b.score - a.score);
-      return matches[0].genre;
-    }
-
-    async function addToGenrePlaylist(trackId, trackUri, artistNames) {
+    async function addToPlaylist(trackUri) {
       if (!accessToken) await init();
-      const genre = await getGenreForTrack(trackId, artistNames);
-      if (!genre || !GENRE_PLAYLISTS[genre]) {
-        alert("❌ Dit nummer past niet genoeg in een van de genres (house, hardstyle, meezingers, pop). Kies een ander nummer.");
-        return;
-      }
 
-      const playlistId = GENRE_PLAYLISTS[genre];
-
-      const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+      const res = await fetch(`https://api.spotify.com/v1/playlists/${PLAYLIST_ID}/tracks`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
@@ -177,16 +82,16 @@
       });
 
       if (res.ok) {
-        alert(`✅ Toegevoegd aan de ${genre} playlist!`);
+        alert("✅ Song added!");
       } else {
-        alert("❌ Kon nummer niet toevoegen.");
+        alert("❌ Failed to add song.");
       }
     }
 
-    let debounceTimeout;
-    document.getElementById("query").addEventListener("input", (e) => {
-      clearTimeout(debounceTimeout);
-      debounceTimeout = setTimeout(() => {
+    let debounce;
+    document.getElementById("query").addEventListener("input", e => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
         searchSpotify(e.target.value);
       }, 300);
     });
