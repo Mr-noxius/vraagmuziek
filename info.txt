@@ -1,0 +1,2 @@
+    const CLIENT_ID = "db3a8275788c4096a98026b3e850d48c";
+    const CLIENT_SECRET = "ba0a30193e954c24985eb62c73cf3da2";
