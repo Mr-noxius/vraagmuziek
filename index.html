@@ -34,6 +34,39 @@
       pop: "52Hi2nLWeRzjicQjMi3r8z"
     };
 
+    let MEEZINGERS_WHITELIST = [];
+
+    async function loadMeezingersWhitelist() {
+  MEEZINGERS_WHITELIST = [
+    "bohemian rhapsody", "sweet caroline", "piano man", "dancing queen", "wonderwall", "don't stop believin'",
+    "livin' on a prayer", "i want it that way", "hey jude", "mr. brightside", "let it be", "africa",
+    "take me home, country roads", "i will survive", "total eclipse of the heart", "wake me up before you go-go",
+    "i wanna dance with somebody", "billie jean", "ain’t no mountain high enough", "man! i feel like a woman!",
+    "angels", "summer of '69", "eye of the tiger", "you're the one that i want", "we are the champions",
+    "sex on fire", "rolling in the deep", "hallelujah", "chasing cars", "let it go", "shape of you", "shallow",
+    "counting stars", "old town road", "dance monkey", "as it was", "levitating", "happy", "blinding lights",
+    "drivers license", "stay", "bad habits", "flowers", "abcdefu", "roxanne", "highway to hell", "we will rock you",
+    "twist and shout", "sweet child o' mine", "crazy in love", "uptown funk", "shake it off", "someone like you",
+    "thinking out loud", "perfect", "all of me", "just the way you are", "grenade", "locked out of heaven",
+    "a thousand miles", "complicated", "sk8er boi", "toxic", "oops!... i did it again", "baby one more time",
+    "wannabe", "viva la vida", "fix you", "adventure of a lifetime", "yellow", "clocks", "in the end", "numb",
+    "boulevard of broken dreams", "american idiot", "i gotta feeling", "let's get it started", "sorry",
+    "love yourself", "peaches", "ghost", "watermelon sugar", "sign of the times", "drag me down", "story of my life",
+    "what makes you beautiful", "all star", "i’m yours", "rude", "let her go", "pompeii", "believer", "thunder",
+    "demons", "radioactive", "happier", "bad guy", "therefore i am", "everything i wanted", "ocean eyes",
+    "bury a friend", "smells like teen spirit", "come as you are", "in bloom", "lithium", "enter sandman",
+    "nothing else matters", "killing in the name", "tnt", "back in black",
+    "zij gelooft in mij", "bloed zweet en tranen", "leef", "het regent zonnestralen", "als het avond is",
+    "zoutelande", "iedereen is van de wereld", "heb je even voor mij", "waarom fluister ik je naam nog",
+    "ik leef niet meer voor jou", "laat me", "vlieg met me mee", "het is een nacht", "pa", "mag ik dan bij jou",
+    "kon ik maar even bij je zijn", "dromen zijn bedrog", "zij maakt het verschil", "ik kan het niet alleen",
+    "avond", "roller coaster", "brabant", "het dorp", "een man mag niet huilen", "smoorverliefd", "satisfyer",
+    "anne", "rosanne", "zeg maar niets meer", "zonder jou", "samen zijn", "twee leugens", "1000 lieve woorden",
+    "als je wint"
+  ];
+}
+
+
     async function getAppToken() {
       const res = await fetch("https://accounts.spotify.com/api/token", {
         method: "POST",
@@ -54,6 +87,7 @@
 
     async function init() {
       accessToken = await getAppToken();
+      await loadMeezingersWhitelist();
     }
 
     async function searchSpotify(query) {
@@ -81,13 +115,13 @@
                 <p class="text-sm text-gray-500">${track.artists.map(a => a.name).join(", ")}</p>
               </div>
             </div>
-            <button onclick="addToGenrePlaylist('${track.id}', '${track.uri}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">➕</button>
+            <button onclick="addToGenrePlaylist('${track.id}', '${track.uri}', '${track.artists.map(a => a.name.toLowerCase()).join(', ')}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">➕</button>
           </div>`;
         resultsEl.insertAdjacentHTML("beforeend", trackHtml);
       });
     }
 
-    async function getGenreForTrack(trackId) {
+    async function getGenreForTrack(trackId, artistNames) {
       const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -104,22 +138,30 @@
       const artistData = await artistRes.json();
       const genres = artistData.genres.map(g => g.toLowerCase());
 
-      if (!genres || genres.length === 0) return null;
+      const allArtistNames = artistNames.split(',');
+      const isMeezinger = allArtistNames.some(name => MEEZINGERS_WHITELIST.includes(name.trim()));
+
+      if (isMeezinger) return "meezingers";
 
       const genreMap = Object.keys(GENRE_PLAYLISTS);
-      for (const keyword of genreMap) {
-        if (genres.some(g => g.includes(keyword))) {
-          return keyword;
-        }
-      }
-      return null;
+      const matches = genreMap.map(genre => {
+        return {
+          genre,
+          score: genres.filter(g => g.includes(genre)).length
+        };
+      }).filter(g => g.score > 0);
+
+      if (matches.length === 0) return null;
+
+      matches.sort((a, b) => b.score - a.score);
+      return matches[0].genre;
     }
 
-    async function addToGenrePlaylist(trackId, trackUri) {
+    async function addToGenrePlaylist(trackId, trackUri, artistNames) {
       if (!accessToken) await init();
-      const genre = await getGenreForTrack(trackId);
+      const genre = await getGenreForTrack(trackId, artistNames);
       if (!genre || !GENRE_PLAYLISTS[genre]) {
-        alert("❌ Dit nummer past niet in een van de beschikbare genres (house, hardstyle, meezingers, pop). Kies een ander nummer.");
+        alert("❌ Dit nummer past niet genoeg in een van de genres (house, hardstyle, meezingers, pop). Kies een ander nummer.");
         return;
       }
 
