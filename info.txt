@@ -1,2 +1,3 @@
-    const CLIENT_ID = "db3a8275788c4096a98026b3e850d48c";
+ const CLIENT_ID = "db3a8275788c4096a98026b3e850d48c";
     const CLIENT_SECRET = "ba0a30193e954c24985eb62c73cf3da2";
+    const REFRESH_TOKEN = "AQDrLdCitHev6KlQxtKAL2fxhZjsh7a28smFlV2ug1lnNrudi0pxN8Kot0jKRyd03jGdE6ZMgJe__pty56K-JZrqk6_RDPQj54Pu0FPoIKfpYpz5Y52MeudCGlkBs8aWOWs"; // <--- Paste your refresh token here

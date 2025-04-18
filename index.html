@@ -23,10 +23,16 @@
 
   <script>
     const SPOTIFY_SEARCH_ENDPOINT = "https://api.spotify.com/v1/search";
-    const ADD_TO_PLAYLIST_ENDPOINT = "https://api.spotify.com/v1/playlists/5dxS6OX4uSCEjfFMLCzKQD/tracks";
-    const CLIENT_ID = "db3a8275788c4096a98026b3e850d48c";
-    const CLIENT_SECRET = "ba0a30193e954c24985eb62c73cf3da2";
-    const REFRESH_TOKEN = "AQDrLdCitHev6KlQxtKAL2fxhZjsh7a28smFlV2ug1lnNrudi0pxN8Kot0jKRyd03jGdE6ZMgJe__pty56K-JZrqk6_RDPQj54Pu0FPoIKfpYpz5Y52MeudCGlkBs8aWOWs"; // <--- Paste your refresh token here
+    const CLIENT_ID = "your-client-id-here";
+    const CLIENT_SECRET = "your-client-secret-here";
+    const REFRESH_TOKEN = "your-refresh-token-here";
+
+    const GENRE_PLAYLISTS = {
+      house: "3Tp4WIDH07Fq4nZp9kQvax",
+      hardstyle: "43TVcmuse42iHZBMvtXsZ2",
+      meezingers: "0OoWV7pIZjn8l1UHzWoZeV",
+      pop: "52Hi2nLWeRzjicQjMi3r8z"
+    };
 
     async function getAppToken() {
       const res = await fetch("https://accounts.spotify.com/api/token", {
@@ -75,16 +81,51 @@
                 <p class="text-sm text-gray-500">${track.artists.map(a => a.name).join(", ")}</p>
               </div>
             </div>
-            <button onclick="addToPlaylist('${track.uri}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">➕</button>
+            <button onclick="addToGenrePlaylist('${track.id}', '${track.uri}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">➕</button>
           </div>`;
         resultsEl.insertAdjacentHTML("beforeend", trackHtml);
       });
     }
 
-    async function addToPlaylist(trackUri) {
-      if (!accessToken) await init();
+    async function getGenreForTrack(trackId) {
+      const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      const track = await res.json();
+      const artistId = track.artists[0]?.id;
 
-      const res = await fetch(ADD_TO_PLAYLIST_ENDPOINT, {
+      const artistRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      const artistData = await artistRes.json();
+      const genres = artistData.genres.map(g => g.toLowerCase());
+
+      if (!genres || genres.length === 0) return null;
+
+      const genreMap = Object.keys(GENRE_PLAYLISTS);
+      for (const keyword of genreMap) {
+        if (genres.some(g => g.includes(keyword))) {
+          return keyword;
+        }
+      }
+      return null;
+    }
+
+    async function addToGenrePlaylist(trackId, trackUri) {
+      if (!accessToken) await init();
+      const genre = await getGenreForTrack(trackId);
+      if (!genre || !GENRE_PLAYLISTS[genre]) {
+        alert("❌ Dit nummer past niet in een van de beschikbare genres (house, hardstyle, meezingers, pop). Kies een ander nummer.");
+        return;
+      }
+
+      const playlistId = GENRE_PLAYLISTS[genre];
+
+      const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
@@ -94,9 +135,9 @@
       });
 
       if (res.ok) {
-        alert("✅ Song added to the playlist!");
+        alert(`✅ Toegevoegd aan de ${genre} playlist!`);
       } else {
-        alert("❌ Failed to add song.");
+        alert("❌ Kon nummer niet toevoegen.");
       }
     }
 
